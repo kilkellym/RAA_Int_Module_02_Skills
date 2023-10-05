@@ -64,6 +64,7 @@ namespace RAA_Int_Module_02_Skills
             tags.Add("Rooms", curRoomTag);
             tags.Add("Walls", curWallTag);
 
+            int counter = 0;
             using(Transaction t = new Transaction(doc))
             {
                 t.Start("Insert tags");
@@ -118,8 +119,12 @@ namespace RAA_Int_Module_02_Skills
                     Reference curRef = new Reference(curElem);
 
                     // 5a. place tag
-                    IndependentTag newTag = IndependentTag.Create(doc, curTagType.Id, curView.Id,
-                        curRef, false, TagOrientation.Horizontal, insPoint);
+                    if(IsElementTagged(curView, curElem) == false)
+                    {
+                        IndependentTag newTag = IndependentTag.Create(doc, curTagType.Id, curView.Id,
+                            curRef, false, TagOrientation.Horizontal, insPoint);
+                        counter++;
+                    }
 
                     // 5b. place area tag
                     //if (curElem.Category.Name == "Areas")
@@ -136,9 +141,28 @@ namespace RAA_Int_Module_02_Skills
                 t.Commit();
             }
 
-
+            TaskDialog.Show("Complete", $"Tagged {counter} elements.");
 
             return Result.Succeeded;
+        }
+
+        private bool IsElementTagged(View curView, Element curElem)
+        {
+            FilteredElementCollector collector = new FilteredElementCollector(curElem.Document, curView.Id);
+            collector.OfClass(typeof(IndependentTag)).WhereElementIsNotElementType();
+
+            foreach(IndependentTag curTag in collector)
+            {
+                List<ElementId> taggedIds = curTag.GetTaggedLocalElementIds().ToList();
+
+                foreach(ElementId taggedId in taggedIds)
+                {
+                    if (taggedId.Equals(curElem.Id))
+                        return true;
+                }
+            }
+            return false;
+
         }
 
         private XYZ GetMidpointBetweenTwoPoints(XYZ point1, XYZ point2)
